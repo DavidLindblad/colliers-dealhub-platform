@@ -1,0 +1,111 @@
+x-webapp-env: &webapp-env
+  LOGIN_ORIGIN: &trigger-url ${TRIGGER_PROTOCOL:-http}://${TRIGGER_DOMAIN:-localhost:3040}
+  APP_ORIGIN: *trigger-url
+  DEV_OTEL_EXPORTER_OTLP_ENDPOINT: &trigger-otel ${TRIGGER_PROTOCOL:-http}://${TRIGGER_DOMAIN:-localhost:3040}/otel
+  ELECTRIC_ORIGIN: http://electric:3000
+
+x-supervisor-env: &supervisor-env
+  TRIGGER_API_URL: http://webapp:3000
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://webapp:3000/otel
+
+volumes:
+  postgres-data:
+  redis-data:
+  registry-data:
+
+networks:
+  webapp:
+
+services:
+  webapp:
+    image: ghcr.io/triggerdotdev/trigger.dev:${TRIGGER_IMAGE_TAG:-v3}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    env_file:
+      - .env
+    environment:
+      <<: *webapp-env
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT}
+      FROM_EMAIL: ${FROM_EMAIL}
+      REPLY_TO_EMAIL: ${REPLY_TO_EMAIL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET}
+    ports:
+      - "127.0.0.1:3040:3000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - webapp
+
+  supervisor:
+    image: ghcr.io/triggerdotdev/supervisor:prod-4b15439-1744928704-custom
+    restart: ${RESTART_POLICY:-unless-stopped}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
+    ports:
+      - "8020:8020"
+    env_file:
+      - .env
+    environment:
+      <<: *supervisor-env
+      PLATFORM_SECRET: ${COORDINATOR_SECRET}
+      TRIGGER_WORKER_TOKEN: ${TRIGGER_WORKER_TOKEN}
+    depends_on:
+      - webapp
+    networks:
+      - webapp
+
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG:-16}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    networks:
+      - webapp
+    ports:
+      - "127.0.0.1:5433:5432"
+    command:
+      - -c
+      - wal_level=logical
+
+  redis:
+    image: redis:${REDIS_IMAGE_TAG:-7}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    volumes:
+      - redis-data:/data
+    networks:
+      - webapp
+    ports:
+      - "127.0.0.1:6390:6379"
+
+  registry:
+    image: registry:2
+    restart: always
+    ports:
+      - "127.0.0.1:5002:5000"
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
+    volumes:
+      - registry-data:/data
+    networks:
+      - webapp
+
+  electric:
+    image: electricsql/electric:${ELECTRIC_IMAGE_TAG:-latest}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    environment:
+      DATABASE_URL: ${DATABASE_URL}?sslmode=disable
+      ELECTRIC_INSECURE: true
+    networks:
+      - webapp
+    depends_on:
+      - postgres
+    ports:
+      - "127.0.0.1:3061:3000"
