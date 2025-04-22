@@ -7,9 +7,10 @@ services:
       dockerfile: Dockerfile
     restart: ${RESTART_POLICY}
     ports:
-      - "${HTTP_SERVER_PORT}:${HTTP_SERVER_PORT}"
+      - "${HTTP_SERVER_PORT}:3000"  # Map to internal port 3000 as defined in Dockerfile
     environment:
       - NODE_ENV=${NODE_ENV}
+      - PORT=3000  # Explicitly set to match Dockerfile
       - HTTP_SERVER_PORT=${HTTP_SERVER_PORT}
       - TRIGGER_API_URL=${TRIGGER_API_URL}
       - TRIGGER_API_KEY=${TRIGGER_API_KEY}
@@ -18,14 +19,17 @@ services:
       - MAGIC_LINK_SECRET=${MAGIC_LINK_SECRET}
       - SESSION_SECRET=${SESSION_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    # Only mount volumes in development
     volumes:
-      - .:/app
+      - ${NODE_ENV:-development} == "development" ? .:/app : /dev/null:/app
       - /app/node_modules
     networks:
       - webapp
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   postgres:
     image: postgres:${POSTGRES_IMAGE_TAG}
@@ -40,6 +44,11 @@ services:
       - "5432:5432"
     networks:
       - webapp
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:${REDIS_IMAGE_TAG}
@@ -50,6 +59,7 @@ services:
       - "6379:6379"
     networks:
       - webapp
+    command: redis-server --appendonly yes  # Enable persistence
 
 volumes:
   postgres-data:
