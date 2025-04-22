@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=8020
+      - TRIGGER_API_URL=${TRIGGER_API_URL}
+      - TRIGGER_WORKER_TOKEN=${TRIGGER_WORKER_TOKEN}
+      - PLATFORM_SECRET=${PLATFORM_SECRET}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - MAX_CONCURRENT_JOBS=10
+      - JOB_TIMEOUT=300000
+      - LOG_LEVEL=info
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+    ports:
+      - "8020:8020"
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    networks:
+      - webapp
+
+networks:
+  webapp:
+    external: true 
