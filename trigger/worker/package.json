@@ -1,0 +1,17 @@
+{
+  "name": "colliers-dealhub-worker",
+  "version": "1.0.0",
+  "description": "Colliers DealHub Worker",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@trigger.dev/sdk": "^3.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.0"
+  }
+} 
