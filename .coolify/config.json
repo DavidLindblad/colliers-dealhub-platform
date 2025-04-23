@@ -1,0 +1,20 @@
+{
+  "apps": [
+    {
+      "name": "trigger.dev",
+      "directory": "trigger.dev",
+      "type": "dockerfile",
+      "build": {
+        "dockerfile": "Dockerfile",
+        "context": "trigger.dev"
+      },
+      "run": {
+        "port": 3000,
+        "command": "",
+        "env": {
+          "NODE_ENV": "production"
+        }
+      }
+    }
+  ]
+} 
