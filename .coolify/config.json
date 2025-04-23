@@ -3,17 +3,12 @@
     {
       "name": "trigger.dev",
       "directory": "trigger.dev",
-      "type": "dockerfile",
+      "type": "docker-compose",
       "build": {
-        "dockerfile": "Dockerfile",
-        "context": "trigger.dev"
+        "composeFile": "docker-compose.yml"
       },
       "run": {
-        "port": 3000,
-        "command": "",
-        "env": {
-          "NODE_ENV": "production"
-        }
+        "composeFile": "docker-compose.yml"
       }
     }
   ]
