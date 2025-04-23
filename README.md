@@ -8,7 +8,7 @@ This repository contains the Colliers DealHub Platform components.
   - `email-sender/`: Email sending service
   - `graph-generator/`: Graph generation service
   - `table-generator/`: Table generation service
-- `Trigger/`: Trigger service
+- `trigger.dev/`: Trigger service
 
 ## Getting Started
 
